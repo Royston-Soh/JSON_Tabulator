@@ -1,0 +1,81 @@
+library(shiny)
+
+ui <- fluidPage(
+  titlePanel("JSON Tabulator"),
+  sidebarLayout(
+    sidebarPanel(
+      textAreaInput('raw_url',label = "URL",placeholder = 'Insert the data API url',rows=10),
+      selectInput('Topic',label = "Topic",choices = NULL,multiple = F),
+      selectInput('Fields',label = 'Fields',choices = NULL,multiple = F),
+      checkboxInput("show_json", "Show json file?"),
+      downloadButton("table", label="Download table"),
+      actionButton("restart", label = "Start all over")
+
+    ),
+    mainPanel(
+      tableOutput('data'),
+      verbatimTextOutput('data2')
+    )
+  )
+
+)
+
+raw_json=function(url){
+  url=toString(url)
+  jsonlite::fromJSON(url)
+}
+
+server <- function(input, output, session) {
+  json=reactive({
+    req(input$raw_url)
+    raw_json(input$raw_url)})
+  
+  observeEvent(json(),{
+    choices=names(sapply(json(), "[[", 1))
+    updateSelectInput(inputId = 'Topic',choices = choices)
+  })
+  
+  observeEvent(input$Topic,{
+    choices=c(" ",names(sapply(json()[[input$Topic]],"[[",1))) 
+    updateSelectInput(inputId = 'Fields',choices = choices)
+  })
+  
+
+  output$data=renderTable({
+    req(input$Fields)
+    if(input$Fields==" "){
+      head(data.frame(json()[[input$Topic]]),10)
+    } else{
+      head(data.frame(json()[[input$Topic]][[input$Fields]]),10)
+      }
+  })
+  
+  output$data2=renderPrint({
+    req(input$raw_url)
+    if(input$show_json==TRUE){
+      json()} 
+    }) 
+  
+  output$table=downloadHandler(
+    filename = function(){
+      paste0(tools::file_path_sans_ext(input$table),".csv",sep = "")
+    },
+    content = function(file){
+      req(input$Fields)
+      if(input$Fields==" "){
+        write.csv(data.frame(json()[[input$Topic]]),file)
+      } else{
+        write.csv(data.frame(json()[[input$Topic]][[input$Fields]]),file)
+      }
+      
+    }
+  )
+  
+  observeEvent(input$restart, {
+    updateTextAreaInput(inputId = "raw_url",value = "")
+    updateSelectInput(inputId = "Topic",selected = character(0))
+    updateSelectInput(inputId = "Fields", selected = character(0))
+  })
+
+}  
+shinyApp(ui, server)
