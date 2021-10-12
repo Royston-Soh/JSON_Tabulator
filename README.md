@@ -3,7 +3,7 @@
 
 May not work on all API weblinks/dataframe... but here it goes anyway.
 
-To access the app, use the link [JSON Tabulator](https://royston-soh.shinyapps.io/JSON_Tabulator) 
+To access the app, use the link
 
 https://royston-soh.shinyapps.io/JSON_Tabulator/
 
